@@ -1,9 +1,6 @@
-##Author: James Robey, jrobey.services@gmail.com, c.2012
-## a module to simpilify SQL commands greatly.
 
-##This is licensed under a BSD-compatible license of your choice, provided you send me an email saying how you heard of it (although I dont ask you 
-##send any identifying information in that email, if you dont want to). Otherwise it's licesnsed under the LGPL v2 or v3,
-##which is, again, your choice if you dont want to send me an email.
+## Author: James Robey, jrobey.services@gmail.com, c.2012
+## a module to simpilify SQL commands greatly.
 
 import psycopg2, re
     
@@ -174,15 +171,15 @@ class Table:
             More: set up the select such that it will return a column or list of rows from the jointable specified 
             where the column name matched on both.
 
-            i.e. Table('message_users').where(user_id=hashed_message_key).join('messages', 'message_id').fetch('value')
-            this will get the value of all messages where there is an message_id message_users indicating the user_id has that ownership
+            i.e. Table('trust_message_users').where(user_id=hashed_message_key).join('trust_messages', 'message_id').fetch('value')
+            this will get the value of all messages where there is an message_id trust_message_users indicating the user_id has that ownership
 
             The following is just notes:
 
-            SELECT messages.value 
-                FROM messages, message_users
-                WHERE message.message_id = message_users.message_id 
-                AND message_users.user_id = '520f26294d3de705f3ed3463f0e2872f97f9651b'; 
+            SELECT trust_messages.value 
+                FROM trust_messages, trust_message_users
+                WHERE trust_message.message_id = trust_message_users.message_id 
+                AND trust_message_users.user_id = '520f26294d3de705f3ed3463f0e2872f97f9651b'; 
         """
         
         if limitone:    limitone = "LIMIT 1"
@@ -220,24 +217,27 @@ class Table:
             if not selectargs: 
                 selectargs = ['*']
                 
-            #the 
+            #the base statement 
             statement = "SELECT %s FROM %s"%(
                 ','.join(selectargs), 
                 self.tableid, 
             )
             
+            #are there joins?
             if self.where_joins:
                 statement = "%s WHERE %s"%(
                     statement,
                     self.where_joins,
                 )
                 
+            #are we getting one or all?
             if limitone:
                 statement = "%s %s"%(
                     statement,
                     limitone
                 )
                 
+            #finish it off.
             statement = "%s;"%(statement)
             
         self.cursor.execute(statement)
@@ -317,148 +317,137 @@ class Table:
 if __name__ == "__main__":    
     print "\nBASIC SET AND GET TESTING ##################################################\n"
     
+    #we have to login
     print """Table.login('jrobey', 'letmein', 'files')""",\
         Table.login('jrobey', 'letmein', 'files')
     
+    #we have to create a table (default is 40 char key and text i.e. key value store, i.e. sha1+anything)
     print """Table.create("SomeTable")""",\
         Table.create("SomeTable")
-        
+    
+    #make a reference to a table object pointing at it.    
     store1 = Table("SomeTable") 
     
+    #and store a new row.
     store1.where(key="hi", value="there").set()
     
+    #then, see if we found what we just inserted
     print "store1.has('1234')",\
         store1.has(key="1234")
         
+    #this time, find the entry where key=1234 and update it 
     print """store1.where(key="1234").set(value="4567")""",\
         store1.where(key="1234").set(value="4567")
         
+    #did that work?
     print "store1.has('1234')",\
         store1.has(key="1234")
         
+    #now try getting one entire row as a result
     print """store1.where(key="1234").get()""",\
         store1.where(key="1234").get()
     
+    #now try removing all keys with 1234
     print """store1.where(key="1234").remove()""",\
         store1.where(key="1234").remove()
         
+    #did it work?
     print """store1.where(key="1234").get()""",\
         store1.where(key="1234").get()
     
+    #lets test tables with more advanced schema
     print "\nKWARGS TESTING ##################################################\n"
     
+    #make a table called test2 with the postgres schema statement you see in the quotes:
     print """Table.create("test2", ...)""",\
         Table.create("test2", """
-            key VARCHAR(40) PRIMARY KEY, pubkey TEXT, pubsignkey TEXT, groups TEXT, lastlogin VARCHAR(100)
+            key VARCHAR(40) PRIMARY KEY, identity TEXT, pubsignkey TEXT, groups TEXT, lastlogin VARCHAR(100)
         """)
     
+    #and make a reference
     store2 = Table("test2")
     
+    #try updating the key 1234 row with all these values (if not there, will be made)
     print """store2.where(key="1234").set(...)""",\
         store2.where(key="1234").set(
-            pubkey="94092ijgjks", 
+            identity="94092ijgjks", 
             pubsignkey="4gjnef24hig", 
             groups="groupsA, groupsB", 
             lastlogin="last1"
         )
-    
+        
+    #try setting a new key side by side
     print """store2.where(key="1235").set(...)""",\
         store2.where(key="1235").set(
-            pubkey="90dkwemgo4j95k", 
+            identity="90dkwemgo4j95k", 
             pubsignkey="k0492ijrkkrhg", 
             groups="groupsC, groupsD", 
             lastlogin="last2"
         )
     
+    #did it all work? (get key 1235)
     print """store2.where(key='1235').get()""",\
         store2.where(key='1235').get()
-        
-    print """store2.where(key='1235').set(pubkey='pubkey')""",\
-        store2.where(key='1235').set(pubkey='pubkey')
-        
-    print "store2.get(key='1235', ('pubkey', 'groups'))",\
-        store2.where(key='1235').get('pubkey', 'groups')
     
+    #lets try setting a single var on 1235
+    print """store2.where(key='1235').set(identity='identity')""",\
+        store2.where(key='1235').set(identity='identity')
+        
+    #try getting two values from the row with key=1235
+    print "store2.get(key='1235', ('identity', 'groups'))",\
+        store2.where(key='1235').get('identity', 'groups')
+    
+    #lets test using the framework in regards to insert/select
     print "\nINSERT/SELECT TESTING ##################################################\n"
     
+    #make a simple table to work with
     print """Table.create("test3", ...)""",\
         Table.create("test3", "key VARCHAR(40) PRIMARY KEY, name VARCHAR(64), color VARCHAR(6)")
         
+    #and get a referernce
     store3 = Table('test3')
     
+    #see if we can make a new row
     print """store3.where(key="a").set(name="james", color="ff0000")""",\
         store3.where(key="a").set(name="james", color="ff0000")
         
+    #another new row
     print """store3.where(key="b").set(name="bob", color="0000ff")""",\
         store3.where(key="b").set(name="bob", color="0000ff")
         
+    #an third - note all different name/color values
     print """store3.where(key="c").set(name="jill", color="770077")""",\
         store3.where(key="c").set(name="jill", color="770077")
     
+    #see if we can get the row with name james
     print """store3.where(name="james").get()""",\
         store3.where(name="james").get()
         
+    #see if we can get the row with color 0000ff
     print """store3.where(color="0000ff").get()""",\
         store3.where(color="0000ff").get()
         
+    #see if we can get just the color with row key='c' (NOT an array, just the value)
     print """store3.where(key="c").get('color')""",\
         store3.where(key="c").get('color')
         
+    #see if we can get a list of all colors where key="c"
     print """store3.where(key="c").fetch()""",\
         store3.where(key="c").fetch('color')
     
+    #try removing all rows with key=c
     print """store3.where(key="c").remove()""",\
         store3.where(key="c").remove()
         
+    #did it work?
     print """store3.where(key="c").get()""",\
         store3.where(key="c").get()
         
+    #that sums it up
     print "\nFINIS. ##########################"
     
-    # create a table to hold new messages for users:
-    Table.create("tm", """
-        message_id VARCHAR(40) PRIMARY KEY,
-        value Text,
-        date VARCHAR(30)
-    """)
-    
-    # create a table to hold which files are owned by which users
-    Table.create("tmu", """
-        message_id VARCHAR(40),
-        user_id VARCHAR(40)
-    """)
-    
-    import time
-    
-    tm = Table('tm')
-    tmu = Table('tmu')
-    print """tm.where(message_id="123", value="hi there1", date=time.time()).set()""",\
-        tm.where(message_id="123").set(value="hi there1", date=time.time())
-    
-    print """tm.where(message_id="124", value="hi there2", date=time.time()).set()""",\
-        tm.where(message_id="124").set(value="hi there2", date=time.time())
-    
-    print """tmu.where(message_id="123", user_id="1").set();"""
-    tmu.where(message_id="123", user_id="1").set();
-    tmu.where(message_id="123", user_id="2").set();
-    tmu.where(message_id="124", user_id="2").set();
-    tmu.where(message_id="124", user_id="3").set();
-    
-    print """tmu.where(user_id="1").join('tm', 'message_id').fetch('value')""",\
-        tmu.join('tm', 'message_id').where(user_id="1").fetch('value')
-    
-    print """tmu.where(user_id="2").join('tm', 'message_id').fetch('value')""",\
-        tmu.join('tm', 'message_id').where(user_id="2").fetch('value')
-        
-    print """tmu.where(user_id="3").join('tm', 'message_id').fetch('value')""",\
-        tmu.join('tm', 'message_id').where(user_id="3").fetch('value')
-    
 """
-    THE FOLLOWING IS USEFUL KNOWLEDGE WHEN CONFIGURING POSTGRES STORAGE
-    
-    - update ph_hba.conf and postgresql.conf
-    - ALTER USER davide WITH PASSWORD 'hu8jmn3';
-    
-    - use current user - remember, it is psql DB, not psql USER
+    Hope you enjoyed.
+    Author: James Robey, jrobey.services@gmail.com, c.2012
+    A module to simpilify SQL commands greatly.
 """
-
