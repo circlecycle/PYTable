@@ -22,7 +22,7 @@ you can say:
     Table('sometable').where(person_id=8823).set(firstname='james', lastname='robey')
             
 Instead of:
-    INSERT INTO sometable (firstname, lastname) VALUES ('james', 'robey'); -- duplicate rows are not an intended use of this system (i.e. PK always assumed)!
+    INSERT INTO sometable (firstname, lastname) VALUES ('james', 'robey'); -- exactly duplicate rows are not an intended use of this system (i.e. PK always assumed)!
 
 you can say:
     Table('sometable').where(firstname='james', lastname='robey').set()
