@@ -174,15 +174,15 @@ class Table:
             More: set up the select such that it will return a column or list of rows from the jointable specified 
             where the column name matched on both.
 
-            i.e. Table('trust_message_users').where(user_id=hashed_message_key).join('trust_messages', 'message_id').fetch('value')
-            this will get the value of all messages where there is an message_id trust_message_users indicating the user_id has that ownership
+            i.e. Table('message_users').where(user_id=hashed_message_key).join('messages', 'message_id').fetch('value')
+            this will get the value of all messages where there is an message_id message_users indicating the user_id has that ownership
 
             The following is just notes:
 
-            SELECT trust_messages.value 
-                FROM trust_messages, trust_message_users
-                WHERE trust_message.message_id = trust_message_users.message_id 
-                AND trust_message_users.user_id = '520f26294d3de705f3ed3463f0e2872f97f9651b'; 
+            SELECT messages.value 
+                FROM messages, message_users
+                WHERE message.message_id = message_users.message_id 
+                AND message_users.user_id = '520f26294d3de705f3ed3463f0e2872f97f9651b'; 
         """
         
         if limitone:    limitone = "LIMIT 1"
